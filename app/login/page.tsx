@@ -108,9 +108,18 @@ export default function LoginPage() {
 
   return (
     <main style={S.page} aria-label="Login page">
-      <div style={S.watermark} aria-hidden />
-
       <div style={S.content}>
+
+        {/* ✅ Logo at the top */}
+        <div style={S.headerWrap}>
+          <img
+            src="/nasfat-logo.png"
+            alt="NASFAT Manchester"
+            style={S.logo}
+          />
+        </div>
+
+        {/* ✅ Card unchanged */}
         <div style={S.card}>
           <div style={S.top}>
             <div>
@@ -212,29 +221,25 @@ export default function LoginPage() {
 
 const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
   page: {
-    position: 'relative',
     minHeight: '100vh',
-    background: '#F5F7FA',
+    background: 'linear-gradient(180deg, #EAF4FB 0%, #F5F7FA 40%)',
     overflow: 'hidden',
   },
 
-  watermark: {
-    position: 'absolute',
-    inset: 0,
-    backgroundImage: "url('/nasfat-logo.png')",
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'center 70%',
-    backgroundSize: isMobile ? '80%' : '46%',
-    opacity: 0.10,
-    filter: 'blur(1.5px)',
-    transform: 'scale(1.02)',
-    pointerEvents: 'none',
-    zIndex: 0,
+  // ✅ NEW: logo at the top (no background watermark)
+  headerWrap: {
+    display: 'flex',
+    justifyContent: 'center',
+    marginBottom: isMobile ? 12 : 18,
+  },
+  
+  logo: {
+    width: isMobile ? 90 : 110,
+    height: 'auto',
+    opacity: 1, // fully opaque
   },
 
   content: {
-    position: 'relative',
-    zIndex: 1,
     padding: isMobile ? 14 : 24,
     minHeight: '100vh',
     display: 'flex',
@@ -282,16 +287,16 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     borderRadius: 14,
     border: '1px solid rgba(207, 230, 246, 0.85)',
     background: 'rgba(234, 244, 251, 0.80)',
-    backdropFilter: 'blur(8px)',
-    WebkitBackdropFilter: 'blur(8px)',
     minWidth: 130,
   },
+
   metaLabel: {
     fontSize: 11,
     color: '#1F3A5F',
     opacity: 0.75,
     fontWeight: 900,
   },
+
   metaValue: {
     marginTop: 2,
     fontSize: 12,
@@ -335,8 +340,8 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     padding: '12px 14px',
     fontSize: 16,
     outline: 'none',
-    color: '#000000',          // 👈 typed text is black
-    caretColor: '#000000',     // 👈 cursor is black
+    color: '#000000',
+    caretColor: '#000000',
   },
 
   row: {
@@ -388,7 +393,7 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     fontWeight: 900,
     cursor: 'pointer',
     fontSize: 16,
-    minHeight: 48, // good tap target
+    minHeight: 48,
   },
 
   primaryBtnDisabled: {

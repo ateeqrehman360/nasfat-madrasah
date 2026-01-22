@@ -130,7 +130,6 @@ export default function ParentPage() {
   if (loading) {
     return (
       <main style={S.page}>
-        <div style={S.watermark} aria-hidden />
         <div style={S.content}>
           <div style={S.centerCard}>
             <p style={{ margin: 0, color: '#1F3A5F', fontWeight: 900 }}>Loading…</p>
@@ -145,26 +144,30 @@ export default function ParentPage() {
 
   return (
     <main style={S.page}>
-      {/* ✅ Proper single watermark layer (behind EVERYTHING) */}
-      <div style={S.watermark} aria-hidden />
 
       {/* ✅ Foreground content */}
       <div style={S.content}>
         <div style={S.header}>
-          <div>
-            <div style={S.headerTitle}>Madrasa Points</div>
-            <div style={S.headerSub}>Parent View</div>
+          <div style={S.headerLeft}>
+            <div>
+              <div style={S.headerTitle}>Madrasa Points</div>
+              <div style={S.headerSub}>Parent View</div>
+            </div>
           </div>
 
-          <button
-            onClick={async () => {
-              await supabase.auth.signOut()
-              router.push('/login')
-            }}
-            style={S.logoutBtn}
-          >
-            Log out
-          </button>
+          <div style={S.headerRight}>
+            <img src="/nasfat-logo.png" alt="NASFAT Manchester" style={S.headerLogo} />
+
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut()
+                router.push('/login')
+              }}
+              style={S.logoutBtn}
+            >
+              Log out
+            </button>
+          </div>
         </div>
 
         <div style={S.topInfoCard}>
@@ -239,31 +242,12 @@ export default function ParentPage() {
 
 const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
   page: {
-    position: 'relative',
     minHeight: '100vh',
     background: '#F5F7FA',
     overflow: 'hidden',
   },
 
-  // ✅ One continuous background watermark (not floating between sections)
-  watermark: {
-    position: 'absolute',
-    inset: 0,
-    backgroundImage: "url('/nasfat-logo.png')",
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'center 70%',
-    backgroundSize: isMobile ? '75%' : '42%',
-    opacity: 0.14,
-    transform: 'scale(1.02)',
-    filter: 'blur(1.5px)',
-    pointerEvents: 'none',
-    zIndex: 0,
-  },
-
-  // ✅ All UI on top of the watermark
   content: {
-    position: 'relative',
-    zIndex: 1,
     padding: isMobile ? 14 : 24,
   },
 
@@ -292,6 +276,24 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     color: '#6B7280',
     fontWeight: 600,
   },
+  headerLeft: {
+    minWidth: 0,
+  },
+
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+  },
+
+  headerLogo: {
+    width: isMobile ? 38 : 44,
+    height: 'auto',
+    opacity: 0.95,
+    flexShrink: 0,
+  },
   logoutBtn: {
     background: '#FFFFFF',
     border: '1px solid rgba(209, 213, 219, 1)',
@@ -300,7 +302,7 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     cursor: 'pointer',
     fontWeight: 900,
     color: '#1F3A5F',
-    width: isMobile ? '100%' : undefined,
+    width: isMobile ? 'auto' : undefined,
   },
 
   topInfoCard: {

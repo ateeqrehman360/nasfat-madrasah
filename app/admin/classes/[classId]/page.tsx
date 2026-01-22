@@ -133,7 +133,6 @@ export default function ClassPage() {
   if (loading) {
     return (
       <main style={S.page}>
-        <div style={S.watermark} aria-hidden />
         <div style={S.content}>
           <div style={S.card}>Loading…</div>
         </div>
@@ -143,14 +142,22 @@ export default function ClassPage() {
 
   return (
     <main style={S.page}>
-      <div style={S.watermark} aria-hidden />
       <div style={S.content}>
         <div style={S.header}>
-          <button onClick={() => router.push('/admin')} style={S.backBtn}>← Back</button>
-          <div>
-            <div style={S.headerTitle}>Class</div>
-            <div style={S.headerSub}>Log points for today</div>
+          <div style={S.headerLeft}>
+            <button onClick={() => router.push('/admin')} style={S.backBtn}>← Back</button>
+
+            <div style={{ minWidth: 0 }}>
+              <div style={S.headerTitle}>Class</div>
+              <div style={S.headerSub}>Log points for today</div>
+            </div>
           </div>
+
+          <img
+            src="/nasfat-logo.png"
+            alt="NASFAT Manchester"
+            style={S.headerLogo}
+          />
         </div>
 
         <div style={S.stickyBar}>
@@ -217,19 +224,18 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     overflow: 'hidden',
   },
 
-  // Watermark: soft + blurred so it doesn't look messy through cards
-  watermark: {
-    position: 'absolute',
-    inset: 0,
-    backgroundImage: "url('/nasfat-logo.png')",
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'center 70%',
-    backgroundSize: isMobile ? '80%' : '46%',
-    opacity: 0.09,
-    filter: 'blur(1.5px)',      // subtle, won’t look low-quality
-    transform: 'scale(1.02)',   // prevents blur edge artifacts
-    pointerEvents: 'none',
-    zIndex: 0,
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    minWidth: 0,
+  },
+
+  headerLogo: {
+    width: isMobile ? 38 : 44,
+    height: 'auto',
+    opacity: 0.95,
+    flexShrink: 0,
   },
 
   content: {
@@ -245,6 +251,7 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     borderRadius: 16,
     padding: isMobile ? 14 : 16,
     display: 'flex',
+    justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
     backdropFilter: 'blur(8px)',

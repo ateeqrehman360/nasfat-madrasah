@@ -80,7 +80,6 @@ export default function AdminPage() {
 
   return (
     <main style={S.page}>
-      <div style={S.watermark} aria-hidden />
 
       <div style={S.content}>
         <div style={S.header}>
@@ -136,6 +135,12 @@ export default function AdminPage() {
           </>
         )}
       </div>
+
+      <img
+          src="/nasfat-logo.png"
+          alt="NASFAT Manchester"
+          style={S.bottomLogo}
+        />  
     </main>
   )
 }
@@ -148,19 +153,16 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     overflow: 'hidden',
   },
 
-  // EXACT match to classId page watermark
-  watermark: {
-    position: 'absolute',
-    inset: 0,
-    backgroundImage: "url('/nasfat-logo.png')",
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'center 70%',
-    backgroundSize: isMobile ? '80%' : '46%',
-    opacity: 0.09,
-    filter: 'blur(1px)',
-    transform: 'scale(1.02)',
-    pointerEvents: 'none',
-    zIndex: 0,
+  bottomLogo: {
+    position: 'fixed',                 // stays bottom-middle even when scrolling
+    left: '50%',
+    transform: 'translateX(-50%)',
+    bottom: isMobile ? 12 : 16,
+    width: isMobile ? 90 : 110,
+    height: 'auto',
+    opacity: 0.85,
+    pointerEvents: 'none',             // doesn't block taps/clicks
+    zIndex: 0,                         // sits behind content
   },
 
   content: {
