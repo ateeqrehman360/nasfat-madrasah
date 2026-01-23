@@ -242,8 +242,9 @@ export default function ParentPage() {
 
 const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
   page: {
+    position: 'relative',
     minHeight: '100vh',
-    background: '#F5F7FA',
+    background: 'linear-gradient(180deg, #EAF4FB 0%, #F5F7FA 40%)',
     overflow: 'hidden',
   },
 
@@ -297,12 +298,12 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
   logoutBtn: {
     background: '#FFFFFF',
     border: '1px solid rgba(209, 213, 219, 1)',
-    borderRadius: 12,
-    padding: '10px 14px',
+    borderRadius: 14,
+    padding: '12px 16px', // ⬅ bigger
     cursor: 'pointer',
     fontWeight: 900,
     color: '#1F3A5F',
-    width: isMobile ? 'auto' : undefined,
+    minHeight: 44, // ⬅ mobile accessibility
   },
 
   topInfoCard: {
@@ -370,14 +371,21 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))',
   },
 
-  // ✅ This is what makes the watermark visible "through" the cards
   childCard: {
-    background: 'rgba(255, 255, 255, 0.75)',
-    border: '1px solid rgba(229, 231, 235, 0.75)',
-    borderRadius: 18,
-    padding: isMobile ? 14 : 16,
-    backdropFilter: 'blur(6px)',
-    WebkitBackdropFilter: 'blur(6px)',
+    background: 'rgba(255, 255, 255, 0.78)',
+    borderRadius: 20,
+    padding: isMobile ? 16 : 18,
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+
+    // elevation
+    boxShadow: `
+      0 8px 24px rgba(31, 58, 95, 0.08),
+      0 2px 6px rgba(31, 58, 95, 0.06)
+    `,
+
+    // tap feel
+    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
   },
   childHeader: {
     display: 'flex',
@@ -426,16 +434,18 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
   },
 
   metricBox: {
-    background: 'rgba(255, 255, 255, 0.82)',
-    border: '1px solid rgba(238, 242, 247, 1)',
+    background: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 16,
-    padding: isMobile ? 12 : 14,
+    padding: isMobile ? 14 : 16,
+    boxShadow: '0 4px 12px rgba(31, 58, 95, 0.08)',
   },
+
   metricLabel: {
     fontSize: 12,
     color: '#6B7280',
     fontWeight: 900,
   },
+
   metricValue: {
     marginTop: 6,
     fontSize: isMobile ? 26 : 28,

@@ -9,7 +9,7 @@ export default function LoginPage() {
 
   const [isMobile, setIsMobile] = useState(false)
 
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
 
@@ -21,7 +21,7 @@ export default function LoginPage() {
 
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
-  const emailRef = useRef<HTMLInputElement | null>(null)
+  const usernameRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 640)
@@ -31,8 +31,8 @@ export default function LoginPage() {
   }, [])
 
   useEffect(() => {
-    // autofocus email (mobile-friendly)
-    emailRef.current?.focus()
+    // autofocus username (mobile-friendly)
+    usernameRef.current?.focus()
   }, [])
 
   useEffect(() => {
@@ -52,8 +52,8 @@ export default function LoginPage() {
 
   const normalizeAuthError = (raw: string) => {
     const s = raw.toLowerCase()
-    if (s.includes('invalid login credentials')) return 'Email or password is incorrect.'
-    if (s.includes('email not confirmed')) return 'Your account is not confirmed yet. Please contact the madrasa admin.'
+    if (s.includes('invalid login credentials')) return 'Username or password is incorrect.'
+    if (s.includes('username not confirmed')) return 'Your account is not confirmed yet. Please contact the madrasa admin.'
     if (s.includes('too many requests')) return 'Too many attempts. Please wait a moment and try again.'
     return raw
   }
@@ -64,21 +64,31 @@ export default function LoginPage() {
     setNetHint(null)
     setLoading(true)
 
-    const cleanEmail = email.trim()
+    const cleanUsername = username.trim().toLowerCase()
 
+    // 1) Look up email from username
+    const { data: prof, error: profErr } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('username', cleanUsername)
+      .single()
+
+    if (profErr || !prof?.email) {
+      setMsg('Username or password is incorrect.')
+      setLoading(false)
+      return
+    }
+
+    // 2) Sign in using the email we found
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: cleanEmail,
+      email: prof.email,
       password,
     })
 
     setLoading(false)
 
     if (error) {
-      console.error(error)
-      setMsg(normalizeAuthError(error.message))
-      if (error.message?.toLowerCase().includes('fetch') || error.message?.toLowerCase().includes('network')) {
-        setNetHint('Network issue. Please check your internet and try again.')
-      }
+      setMsg('Username or password is incorrect.')
       return
     }
 
@@ -88,7 +98,7 @@ export default function LoginPage() {
       return
     }
 
-    // route based on role
+    // 3) Route based on role (same as before)
     const { data: profile, error: profileErr } = await supabase
       .from('profiles')
       .select('role')
@@ -103,7 +113,7 @@ export default function LoginPage() {
 
     if (profile?.role === 'admin') router.push('/admin')
     else if (profile?.role === 'parent') router.push('/parent')
-    else setMsg('Account role not set. Please contact the madrasa admin.')
+    else setMsg('Account role not set. Please contact the madrasah admin.')
   }
 
   return (
@@ -142,19 +152,18 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={signIn} style={{ marginTop: 14 }} aria-busy={loading}>
-            <label style={S.label} htmlFor="email">
-              Email
+            <label style={S.label} htmlFor="username">
+              Username
             </label>
             <input
-              ref={emailRef}
-              id="email"
+              ref={usernameRef}
+              id="username"
               style={S.input}
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              autoComplete="username"
+              placeholder="e.g. abdullah123"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
             />
 
@@ -209,15 +218,14 @@ export default function LoginPage() {
 
         <div style={S.footer}>NASFAT Manchester • Madrasa</div>
       </div>
+      <style jsx global>{`
+        input::placeholder {
+          color: #9CA3AF;
+        }
+      `}</style>
     </main>
   )
 }
-
-<style jsx global>{`
-  input::placeholder {
-    color: #9CA3AF;
-  }
-`}</style>
 
 const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
   page: {
@@ -249,15 +257,19 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
   },
 
   card: {
-    background: 'rgba(255, 255, 255, 0.86)',
-    border: '1px solid rgba(229, 231, 235, 0.70)',
+    marginTop: 14,
+    background: 'rgba(255, 255, 255, 0.90)',
     borderRadius: 18,
-    padding: isMobile ? 16 : 18,
-    maxWidth: 520,
-    width: '100%',
-    margin: '0 auto',
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
+    padding: isMobile ? 14 : 16,
+
+    // Elevation instead of border
+    boxShadow: isMobile
+      ? '0 8px 24px rgba(15, 23, 42, 0.10)'
+      : '0 10px 30px rgba(15, 23, 42, 0.08)',
+
+    // Keep glass effect
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
   },
 
   top: {

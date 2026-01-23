@@ -220,7 +220,7 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
   page: {
     position: 'relative',
     minHeight: '100vh',
-    background: '#F5F7FA',
+    background: 'linear-gradient(180deg, #EAF4FB 0%, #F5F7FA 40%)',
     overflow: 'hidden',
   },
 
@@ -331,15 +331,20 @@ const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     width: isMobile ? '100%' : undefined,
   },
 
-  // Generic card (if used)
   card: {
     marginTop: 14,
-    background: 'rgba(255, 255, 255, 0.86)',
-    border: '1px solid rgba(229, 231, 235, 0.70)',
+    background: 'rgba(255, 255, 255, 0.90)',
     borderRadius: 18,
     padding: isMobile ? 14 : 16,
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
+
+    // Elevation instead of border
+    boxShadow: isMobile
+      ? '0 8px 24px rgba(15, 23, 42, 0.10)'
+      : '0 10px 30px rgba(15, 23, 42, 0.08)',
+
+    // Keep glass effect
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
   },
 
   grid: {
