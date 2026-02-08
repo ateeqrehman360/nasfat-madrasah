@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useParams, useRouter } from 'next/navigation'
 
@@ -15,6 +16,14 @@ type PointRow = {
   points: number
 }
 
+type StudentNote = {
+  id: string
+  student_id: string
+  title: string | null
+  content: string
+  created_at: string
+}
+
 export default function ClassPage() {
   const { classId } = useParams<{ classId: string }>()
   const router = useRouter()
@@ -22,6 +31,11 @@ export default function ClassPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [points, setPoints] = useState<Record<string, number>>({})
   const [totals, setTotals] = useState<Record<string, number>>({})
+
+  const [notesByStudent, setNotesByStudent] = useState<Record<string, StudentNote[]>>({})
+  const [openNotes, setOpenNotes] = useState<Record<string, boolean>>({})
+  const [newNote, setNewNote] = useState<Record<string, string>>({})
+  const [noteStatus, setNoteStatus] = useState<Record<string, 'idle' | 'saving' | 'saved'>>({})
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -40,11 +54,11 @@ export default function ClassPage() {
   const clampPoints = (n: number) => Math.max(-1, Math.min(2, n))
 
   useEffect(() => {
-    const loadStudentsAndTotals = async () => {
+    const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return router.push('/login')
 
-      const { data, error } = await supabase
+      const { data: studentData, error } = await supabase
         .from('students')
         .select('id, first_name, last_name')
         .eq('class_id', classId)
@@ -56,42 +70,56 @@ export default function ClassPage() {
         return
       }
 
-      const studentList = data ?? []
+      const studentList = studentData ?? []
       setStudents(studentList)
 
       const initialPoints: Record<string, number> = {}
-      studentList.forEach((s) => (initialPoints[s.id] = 0))
+      studentList.forEach(s => (initialPoints[s.id] = 0))
       setPoints(initialPoints)
 
-      if (studentList.length > 0) {
-        const ids = studentList.map((s) => s.id)
-        const { data: totalsData, error: totalsErr } = await supabase
-          .from('daily_points')
-          .select('student_id, points')
-          .in('student_id', ids)
-
-        if (totalsErr) console.error(totalsErr)
-        else {
-          const rows = (totalsData ?? []) as PointRow[]
-          const t: Record<string, number> = {}
-          for (const row of rows) t[row.student_id] = (t[row.student_id] ?? 0) + row.points
-          setTotals(t)
-        }
-      } else {
-        setTotals({})
+      if (studentList.length === 0) {
+        setLoading(false)
+        return
       }
+
+      const ids = studentList.map(s => s.id)
+
+      const { data: totalsData } = await supabase
+        .from('daily_points')
+        .select('student_id, points')
+        .in('student_id', ids)
+
+      const totalsMap: Record<string, number> = {}
+      ;(totalsData ?? []).forEach((row: PointRow) => {
+        totalsMap[row.student_id] =
+          (totalsMap[row.student_id] ?? 0) + row.points
+      })
+      setTotals(totalsMap)
+
+      const { data: notesData } = await supabase
+        .from('student_notes')
+        .select('*')
+        .in('student_id', ids)
+        .order('created_at', { ascending: false })
+
+      const grouped: Record<string, StudentNote[]> = {}
+      ;(notesData ?? []).forEach(note => {
+        if (!grouped[note.student_id]) grouped[note.student_id] = []
+        grouped[note.student_id].push(note)
+      })
+      setNotesByStudent(grouped)
 
       setLoading(false)
     }
 
-    loadStudentsAndTotals()
+    loadData()
   }, [classId, router])
 
   const handleSaveToday = async () => {
     setSaving(true)
     setSaveMsg(null)
 
-    const rows = students.map((s) => ({
+    const rows = students.map(s => ({
       student_id: s.id,
       date: todayISO,
       points: clampPoints(points[s.id] ?? 0),
@@ -104,119 +132,245 @@ export default function ClassPage() {
     setSaving(false)
 
     if (error) {
-      console.error(error)
-      setSaveMsg(`❌ Save failed: ${error.message}`)
+      setSaveMsg('❌ Save failed')
       return
-    }
-
-    // Re-fetch totals (simple & correct)
-    const ids = students.map((s) => s.id)
-    const { data: totalsData, error: totalsErr } = await supabase
-      .from('daily_points')
-      .select('student_id, points')
-      .in('student_id', ids)
-
-    if (!totalsErr) {
-      const rows = (totalsData ?? []) as PointRow[]
-      const t: Record<string, number> = {}
-      for (const row of rows) t[row.student_id] = (t[row.student_id] ?? 0) + row.points
-      setTotals(t)
-    } else {
-      console.error(totalsErr)
     }
 
     setSaveMsg('✅ Saved for today')
   }
 
-  const S = styles(isMobile)
-
   if (loading) {
     return (
-      <main style={S.page}>
-        <div style={S.content}>
-          <div style={S.card}>Loading…</div>
-        </div>
+      <main>
+        <div>Loading…</div>
       </main>
     )
   }
 
-  return (
-    <main style={S.page}>
-      <div style={S.content}>
-        <div style={S.header}>
-          <div style={S.headerLeft}>
-            <button onClick={() => router.push('/admin')} style={S.backBtn}>← Back</button>
+ const S = styles(isMobile)
 
-            <div style={{ minWidth: 0 }}>
-              <div style={S.headerTitle}>Class</div>
-              <div style={S.headerSub}>Log points for today</div>
-            </div>
-          </div>
 
-          <img
-            src="/nasfat-logo.png"
-            alt="NASFAT Manchester"
-            style={S.headerLogo}
-          />
-        </div>
-
-        <div style={S.stickyBar}>
-          <div>
-            <div style={S.mutedLabel}>Today</div>
-            <div style={S.todayBig}>{todayISO}</div>
-            {saveMsg && <div style={S.saveMsg}>{saveMsg}</div>}
-          </div>
-
-          <button onClick={handleSaveToday} disabled={saving} style={S.saveBtn}>
-            {saving ? 'Saving…' : 'Save today'}
+return (
+  <main style={S.page}>
+    <div style={S.content}>
+      <div style={S.header}>
+        <div style={S.headerLeft}>
+          <button onClick={() => router.push('/admin')} style={S.backBtn}>
+            ← Back
           </button>
+
+          <div style={{ minWidth: 0 }}>
+            <div style={S.headerTitle}>Class</div>
+            <div style={S.headerSub}>Log points for today</div>
+          </div>
         </div>
 
-        {students.length === 0 ? (
-          <div style={S.card}>No students in this class.</div>
-        ) : (
-          <div style={S.grid}>
-            {students.map((s) => {
-              const name = `${s.first_name}${s.last_name ? ` ${s.last_name}` : ''}`
-              return (
-                <div key={s.id} style={S.studentRow}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={S.studentName}>{name}</div>
-                    <div style={S.studentMeta}>Total: {totals[s.id] ?? 0}</div>
-                  </div>
-
-                  <div style={S.controls}>
-                    <button
-                      style={S.ctrlBtn}
-                      onClick={() =>
-                        setPoints((p) => ({ ...p, [s.id]: clampPoints((p[s.id] ?? 0) - 1) }))
-                      }
-                    >
-                      –
-                    </button>
-
-                    <div style={S.valuePill}>{points[s.id] ?? 0}</div>
-
-                    <button
-                      style={S.ctrlBtn}
-                      onClick={() =>
-                        setPoints((p) => ({ ...p, [s.id]: clampPoints((p[s.id] ?? 0) + 1) }))
-                      }
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        <img
+          src="/nasfat-logo.png"
+          alt="NASFAT Manchester"
+          style={S.headerLogo}
+        />
       </div>
-    </main>
-  )
+
+      <div style={S.stickyBar}>
+        <div>
+          <div style={S.mutedLabel}>Today</div>
+          <div style={S.todayBig}>{todayISO}</div>
+          {saveMsg && <div style={S.saveMsg}>{saveMsg}</div>}
+        </div>
+
+        <button
+          onClick={handleSaveToday}
+          disabled={saving}
+          style={S.saveBtn}
+        >
+          {saving ? 'Saving…' : 'Save today'}
+        </button>
+      </div>
+
+      {students.length === 0 ? (
+        <div style={S.card}>No students in this class.</div>
+      ) : (
+        <div style={S.grid}>
+          {students.map((s) => {
+            const name = `${s.first_name}${s.last_name ? ` ${s.last_name}` : ''}`
+            const notes = notesByStudent[s.id] ?? []
+            const isOpen = openNotes[s.id]
+            const status = noteStatus[s.id] ?? 'idle'
+
+            return (
+              <div key={s.id} style={S.studentRow}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={S.studentName}>{name}</div>
+                  <div style={S.studentMeta}>
+                    Total: {totals[s.id] ?? 0}
+                  </div>
+
+                  {/* Notes toggle */}
+                  {!isOpen && (
+                    <div
+                      style={{
+                        marginTop: 6,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: notes.length > 0 ? '#B45309' : '#2563EB',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() =>
+                        setOpenNotes((o) => ({ ...o, [s.id]: true }))
+                      }
+                    >
+                      {notes.length > 0 ? '🔔 View teacher notes' : '➕ Add a note'}
+                    </div>
+                  )}
+
+                  {isOpen && (
+                    <div style={{ marginTop: 10 }}>
+                      {notes.map((n) => (
+                        <div
+                          key={n.id}
+                          style={{
+                            background: 'rgba(255,255,255,0.85)',
+                            border: '1px solid rgba(229,231,235,0.7)',
+                            borderRadius: 12,
+                            padding: 10,
+                            marginBottom: 8,
+                          }}
+                        >
+                          {n.title && (
+                            <div
+                              style={{
+                                fontWeight: 900,
+                                fontSize: 13,
+                                marginBottom: 4,
+                              }}
+                            >
+                              {n.title}
+                            </div>
+                          )}
+                          <div style={{ fontSize: 13 }}>{n.content}</div>
+                        </div>
+                     ))}
+
+                      <textarea
+                        placeholder="Add a note for parents…"
+                        value={newNote[s.id] ?? ''}
+                        onChange={(e) =>
+                          setNewNote((n) => ({
+                            ...n,
+                            [s.id]: e.target.value,
+                          }))
+                        }
+                        style={{
+                          width: '100%',
+                          marginTop: 8,
+                          padding: 10,
+                          borderRadius: 10,
+                          border: '1px solid rgba(209,213,219,1)',
+                          fontSize: 13,
+                          background: '#FFFFFF',
+                          color: '#111827',
+                          outline: 'none',
+                        }}
+                      />
+
+
+                      <button
+                        disabled={status === 'saving'}
+                        style={{
+                          marginTop: 6,
+                          padding: '8px 12px',
+                          borderRadius: 10,
+                          border: '1px solid rgba(209,213,219,1)',
+                          background:
+                            status === 'saved' ? '#16a34a' : '#1F3A5F',
+                          transition: 'background 0.2s ease',
+                          color: '#FFFFFF',
+                          fontWeight: 800,
+                          cursor: status === 'saving' ? 'default' : 'pointer',
+                          opacity: status === 'saving' ? 0.7 : 1,
+                        }}
+                        onClick={async () => {
+                          const content = newNote[s.id]?.trim()
+                          if (!content) return
+
+                          setNoteStatus((n) => ({ ...n, [s.id]: 'saving' }))
+
+                          const {
+                            data: { user },
+                          } = await supabase.auth.getUser()
+
+                          const { error } = await supabase.from('student_notes').insert({
+                            student_id: s.id,
+                            content,
+                            created_by: user?.id,
+                          })
+
+                          if (error) {
+                            console.error('Note insert error:', error)
+                            alert('Failed to add note. Check console.')
+                            setNoteStatus((n) => ({ ...n, [s.id]: 'idle' }))
+                            return
+                          }
+
+                          // success
+                          setNewNote((n) => ({ ...n, [s.id]: '' }))
+                          setNoteStatus((n) => ({ ...n, [s.id]: 'saved' }))
+
+                          setTimeout(() => {
+                            setNoteStatus((n) => ({ ...n, [s.id]: 'idle' }))
+                          }, 2000)
+                        }}
+                      >
+                        {status === 'saving'
+                          ? 'Saving…'
+                          : status === 'saved'
+                          ? 'Added ✓'
+                          : 'Add note'
+                          }
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div style={S.controls}>
+                  <button
+                    style={S.ctrlBtn}
+                    onClick={() =>
+                      setPoints((p) => ({
+                        ...p,
+                        [s.id]: clampPoints((p[s.id] ?? 0) - 1),
+                      }))
+                    }
+                  >
+                    –
+                  </button>
+
+                  <div style={S.valuePill}>{points[s.id] ?? 0}</div>
+
+                  <button
+                    style={S.ctrlBtn}
+                    onClick={() =>
+                      setPoints((p) => ({
+                        ...p,
+                        [s.id]: clampPoints((p[s.id] ?? 0) + 1),
+                      }))
+                    }
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  </main>
+)
 }
 
-const styles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
+const styles = (isMobile: boolean): Record<string, CSSProperties> => ({
   page: {
     position: 'relative',
     minHeight: '100vh',
