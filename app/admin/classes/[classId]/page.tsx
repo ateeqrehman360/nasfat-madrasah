@@ -51,7 +51,7 @@ export default function ClassPage() {
     return () => window.removeEventListener('resize', update)
   }, [])
 
-  const clampPoints = (n: number) => Math.max(-1, Math.min(2, n))
+  const clampPoints = (n: number) => Math.max(-20, Math.min(20, n))
 
   useEffect(() => {
     const loadData = async () => {
